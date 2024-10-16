@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meowington Services</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap");
+
+      body {
+        font-family: "Poppins", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #3a7bd5, #3a6073);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+        color: #ffffff;
+      }
+
+      #game-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background-image: url('data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%239C92AC" fill-opacity="0.1" fill-rule="evenodd"%3E%3Cpath d="M0 40L40 0H20L0 20M40 40V20L20 40"/%3E%3C/g%3E%3C/svg%3E');
+      }
+
+      .target {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s ease;
+        background: radial-gradient(circle, #fff 4px, transparent 5px),
+          repeating-radial-gradient(
+            circle,
+            #fff 0,
+            #fff 8px,
+            #000 8px,
+            #000 16px,
+            #0074d9 16px,
+            #0074d9 24px,
+            #ff4136 24px,
+            #ff4136 32px,
+            #ffdc00 32px,
+            #ffdc00 40px
+          );
+      }
+
+      #target:hover {
+        transform: scale(1.1);
+      }
+
+      #target:active {
+        transform: scale(0.95);
+      }
+
+      #target-preview {
+        opacity: 0.3;
+        pointer-events: none;
+      }
+
+      #scoreboard {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background-color: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      #scoreboard p {
+        margin: 10px 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      #score {
+        color: #ffd700;
+        font-size: 24px;
+      }
+
+      .glow {
+        animation: glow 0.5s ease-in-out;
+      }
+
+      @keyframes glow {
+        0% {
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+        }
+        100% {
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div id="target" class="target"></div>
+      <div id="target-preview" class="target"></div>
+    </div>
+    <div id="scoreboard">
+      <p id="hitcount">Hits: 0</p>
+      <p id="misscount">Misses: 0</p>
+      <p id="score">Score: 0</p>
+    </div>
+
+    <script>
+      $(document).ready(function () {
+        let hitCount = 0;
+        let missCount = 0;
+        let score = 0;
+        const $target = $("#target");
+        const $targetPreview = $("#target-preview");
+        const $gameContainer = $("#game-container");
+        let nextTargetPos;
+
+        function randomPosition() {
+          const maxX = $gameContainer.width() - $target.width();
+          const maxY = $gameContainer.height() - $target.height();
+          return {
+            x: Math.floor(Math.random() * maxX),
+            y: Math.floor(Math.random() * maxY),
+          };
+        }
+
+        function moveTarget() {
+          $target.animate(
+            {
+              left: nextTargetPos.x,
+              top: nextTargetPos.y,
+            },
+            100,
+            function () {
+              $target.addClass("glow");
+              setTimeout(() => $target.removeClass("glow"), 200);
+              updatePreview();
+            }
+          );
+        }
+
+        function updatePreview() {
+          nextTargetPos = randomPosition();
+          $targetPreview.css({
+            left: nextTargetPos.x,
+            top: nextTargetPos.y,
+          });
+          if (!$target.is(":animated")) {
+            moveTarget();
+          }
+        }
+
+        function updateScore(points) {
+          score += points;
+          $("#score").text(`Score: ${score}`).addClass("glow");
+          setTimeout(() => $("#score").removeClass("glow"), 200);
+        }
+
+        $target.on("click", function (e) {
+          e.stopPropagation();
+          hitCount++;
+          $("#hitcount").text(`Hits: ${hitCount}`);
+          moveTarget();
+
+          const clickX = e.pageX - $target.offset().left;
+          const clickY = e.pageY - $target.offset().top;
+          const centerX = $target.width() / 2;
+          const centerY = $target.height() / 2;
+          const distance = Math.sqrt(
+            Math.pow(clickX - centerX, 2) + Math.pow(clickY - centerY, 2)
+          );
+          const radius = $target.width() / 2;
+
+          if (distance < radius * 0.1) {
+            updateScore(10);
+          } else if (distance < radius * 0.3) {
+            updateScore(8);
+          } else if (distance < radius * 0.5) {
+            updateScore(6);
+          } else if (distance < radius * 0.7) {
+            updateScore(4);
+          } else {
+            updateScore(2);
+          }
+        });
+
+        $gameContainer.on("click", function (e) {
+          if (!$(e.target).is("#target")) {
+            missCount++;
+            $("#misscount").text(`Misses: ${missCount}`);
+          }
+        });
+
+        updatePreview();
+        moveTarget(); // Call moveTarget initially to set the first position
+      });
+    </script>
+  </body>
+</html>
